@@ -26,34 +26,29 @@
 <textarea id="output" cols="80" rows="10" style="float:left"></textarea>
 
 <script>
-  // Name that Colour: 
-  // https://www.color-blindness.com/color-name-hue-tool/js/ntc.js 
-  // original: https://chir.ag/projects/ntc/
+// Name that Colour: 
+// https://www.color-blindness.com/color-name-hue-tool/js/ntc.js 
+// original: https://chir.ag/projects/ntc/
 
-  // Colour Thief: 
-  // https://lokeshdhakar.com/projects/color-thief/#api
+// Colour Thief: 
+// https://lokeshdhakar.com/projects/color-thief/#api
 
-  //console.log('dropzone1');
-  
-  var dropzone = document.getElementById('dropzone');
-  
-  console.log('dropzone2 ' + dropzone);
+var dropzone = document.getElementById('dropzone');
 
-  // https://developers.google.com/web/updates/2012/07/Drag-and-drop-a-folder-onto-Chrome-now-available
-  // https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry
-  dropzone.ondrop = function(e) {
-    console.log('dropzone3');
-    var length = e.dataTransfer.items.length;
-    for (var i = 0; i < length; i++) {
-      var entry = e.dataTransfer.items[i].webkitGetAsEntry();
-      if (entry.isFile) {
-        //console.log(entry);
-      } else if (entry.isDirectory) {
-          //console.log("DIR: " + entry);
-          scanFiles(entry);
-      }
+// https://developers.google.com/web/updates/2012/07/Drag-and-drop-a-folder-onto-Chrome-now-available
+// https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry
+dropzone.ondrop = function(e) {
+  var length = e.dataTransfer.items.length;
+  for (var i = 0; i < length; i++) {
+    var entry = e.dataTransfer.items[i].webkitGetAsEntry();
+    if (entry.isFile) {
+      //console.log(entry);
+    } else if (entry.isDirectory) {
+        //console.log("DIR: " + entry);
+        scanFiles(entry);
     }
-  };
+  }
+};
 
 
 // https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry
