@@ -1,0 +1,213 @@
+<html>
+  <head>
+    <script src="color-thief.umd.js"></script>
+    <script src="ntc.js"></script>
+
+    <style>
+      img { float: left; padding: 10px; border: solid 1px red; width: 150px; height: 150px; }
+    </style>
+  </head>
+
+  <body>
+
+<div style="float:left">
+  <input type="file" style="border:solid 2px red; width:200px; height:200px;" id="dropzone" name="thumbnail">
+</div>
+<div style="float:left; width:150px; height: 150px;">
+  <canvas id="imageCanvas" style="float:left;border:solid 2px red;width:150px; height: 150px;"></canvas>
+</div>
+<div style="clear:both"></div>  
+
+
+<!--ul id="listing" style="list-style: none outside none; margin:0; padding: 0; text-align: center;"-->
+<!--/ul-->
+<div id="listing"></div>
+
+<textarea id="output" cols="80" rows="10" style="float:left"></textarea>
+
+<script>
+  // Name that Colour: 
+  // https://www.color-blindness.com/color-name-hue-tool/js/ntc.js 
+  // original: https://chir.ag/projects/ntc/
+
+  // Colour Thief: 
+  // https://lokeshdhakar.com/projects/color-thief/#api
+
+  console.log('dropzone1');
+  
+  var dropzone = document.getElementById('dropzone');
+  
+  console.log('dropzone2 ' + dropzone);
+
+  // https://developers.google.com/web/updates/2012/07/Drag-and-drop-a-folder-onto-Chrome-now-available
+  // https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry
+  dropzone.ondrop = function(e) {
+    console.log('dropzone3');
+    var length = e.dataTransfer.items.length;
+    for (var i = 0; i < length; i++) {
+      var entry = e.dataTransfer.items[i].webkitGetAsEntry();
+      if (entry.isFile) {
+        console.log(entry);
+      } else if (entry.isDirectory) {
+          console.log("DIR: " + entry);
+          scanFiles(entry);
+      }
+    }
+  };
+
+
+// https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry
+function scanFiles(item) {
+
+  //console.log("scan file:");
+ 
+  if (item.isDirectory) 
+  {
+    console.log("IS DIR: " + item.name);
+    let directoryReader = item.createReader();
+    directoryReader.readEntries(function(entries) {
+      entries.forEach(function(entry) {
+        scanFiles(entry);
+      });
+    });
+  }
+  else
+  {
+    //console.log("FILE: " + item.name);
+
+    readFile(item, successCallback, errorCallback);
+  }
+}  
+
+function successCallback(thing)
+{
+  //console.log("SUCCESS: " + thing);
+}
+
+function errorCallback(thing)
+{
+  //console.log("SUCCESS: " + thing);
+}
+
+const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => {
+  const hex = x.toString(16)
+  return hex.length === 1 ? '0' + hex : hex
+}).join('')
+
+let listing = document.getElementById("listing");
+
+// https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileEntry/file
+function readFile(entry, successCallback, errorCallback) 
+{
+  entry.file(function(file) {
+    let reader = new FileReader();
+    const colorThief = new ColorThief();
+    let colours = [];
+
+    reader.onload = function() {
+      if (entry.name.match(/.(jpg|jpeg|png|gif)$/i))
+      {
+        // https://stackoverflow.com/questions/9267899/arraybuffer-to-base64-encoded-string
+        let base64String = _arrayBufferToBase64(reader.result);
+        //console.log(base64String);
+        let dataURL = "data:image/png;base64," + base64String;
+        //console.log(dataURL);
+
+        var canvas = document.getElementById('imageCanvas');
+        var ctx = canvas.getContext('2d');
+
+        let img = new Image();
+        let imgJpgObj = new Image();
+
+        img.onload = function() {
+            canvas.width = 150;
+            canvas.height = 150;
+            //ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img,0,0, 150, 150);
+
+            // https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
+            let imgJpg = canvas.toDataURL('image/jpeg', 0.8);
+            //let imgJpgObj = new Image();
+            imgJpgObj.src = imgJpg;
+            imgJpgObj.style="float:left; border: solid 6px green;";
+            listing.appendChild(imgJpgObj);
+        }
+
+        img.src = dataURL;
+        imgJpgObj.style="float:left; border: solid 6px green;";
+
+        if (img.complete)
+        {
+          colours = colorThief.getColor(img);
+          //console.log(colours);
+
+          var iDiv = document.createElement('div');
+          iDiv.style = "width: 100px; height: 30px; background-color: rgb(" + colours[0] + ", " + colours[1] + ", "+ colours[2] + "); border:solid 1px green";
+          //listing.appendChild(iDiv);
+          
+          let colourHex = rgbToHex(colours[0], colours[1], colours[2])
+          //console.log(colourHex);
+          colourNames = ntc.name(colourHex);
+          //console.log(colourNames);
+          let copyCmd = "copy \"" + entry.fullPath + "\" " + colourNames[3];
+          console.log(copyCmd);
+          iDiv.innerHTML = colourNames[1] +  " / "  + colourNames[3];
+
+          document.getElementById("output").value += copyCmd + "\n";
+          imgJpgObj.title = iDiv.innerHTML;
+          imgJpgObj.style="float:left; padding: 15px; border: solid 10px " + colourHex;
+        }
+        else {
+          img.addEventListener('load', function() {
+            colours = colorThief.getColor(img);
+            //console.log("Load: " + colours);
+            var iDiv = document.createElement('div');
+            iDiv.style = "width: 100px; height: 30px; background-color: rgb(" + colours[0] + ", " + colours[1] + ", "+ colours[2] + "); border:solid 1px green";
+            //listing.appendChild(iDiv);
+            //console.log("Append");
+            let colourHex = rgbToHex(colours[0], colours[1], colours[2])
+            //console.log(colourHex);
+            colourNames = ntc.name(colourHex);
+            //console.log(colourNames);
+
+            let copyCmd = "copy \"" + entry.fullPath + "\" " + colourNames[3];
+            console.log(copyCmd);
+            iDiv.innerHTML = colourNames[1] +  " / "  + colourNames[3];
+
+            document.getElementById("output").value += copyCmd + "\n";
+
+            imgJpgObj.title = iDiv.innerHTML;
+            imgJpgObj.style="float:left; padding: 15px; border: solid 10px " + colourHex;
+          });
+        }
+      }
+      successCallback(entry.fullPath + " " + colours);
+    };
+
+    reader.onerror = function() {
+      errorCallback(reader.error);
+    }
+
+    reader.readAsArrayBuffer(file);
+  }, errorCallback);
+}
+
+// https://stackoverflow.com/questions/9267899/arraybuffer-to-base64-encoded-string
+function _arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+
+
+//rgbToHex(102, 51, 153); // #663399
+
+  </script>
+
+  </body>
+</html>
